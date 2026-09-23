@@ -1,0 +1,1 @@
+firstWords("aa bbb cc. dd ee. ffff.")
