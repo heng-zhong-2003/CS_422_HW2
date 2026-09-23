@@ -3,6 +3,10 @@ copyright: Copyright (c) Runtime Verification, Inc. All Rights Reserved.
 permalink: README.html
 ---
 
+# CS 422 Homework 2
+
+The solutions to the exercises are in the `hw2/` folder.
+
 [Join the chat on Matrix](https://matrix.to/#/#k:matrix.org)
 
 # Introduction
