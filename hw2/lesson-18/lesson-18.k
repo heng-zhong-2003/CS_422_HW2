@@ -1,17 +1,12 @@
 /*
 Chosen exercise:
 
-Modify your solution to Lesson 1.14, Exercise 2 and introduce the sorts
-`Decls`, `Decl`, and `Stmt` which include variable and function declaration
-(without function parameters), and return and assignment statements, as well
-as call expressions. Use `List` and `Map` to implement these operators, making
-sure to consider the interactions between components, such as saving and
-restoring the environment of variables at each call site. Don't worry about
-local function definitions or global variables for now. Make sure to test the
-resulting interpreter.
+Modify your solution to Lesson 1.16, Exercise 1 and introduce an `if`
+`Stmt` to the syntax of the language, then implement it using the `#if` symbol.
+Make sure to write tests for the resulting interpreter.
 */
 
-module LESSON-16-SYNTAX
+module LESSON-18-SYNTAX
   imports UNSIGNED-INT-SYNTAX
   imports BOOL-SYNTAX
   imports ID-SYNTAX
@@ -60,21 +55,28 @@ module LESSON-16-SYNTAX
   syntax Stmt ::= VarDecl
                 | "return" Exp ";" [strict]
                 | Id ":=" Exp ";" [strict(2)]
+                | "if" BoolExp "then" Stmts "endif" [strict(1)]
   syntax Stmts ::= List{Stmt, ""}
   syntax Pgm ::= Decls
 endmodule
 
-module LESSON-16
-  imports LESSON-16-SYNTAX
+module LESSON-18
+  imports LESSON-18-SYNTAX
   imports INT
   imports BOOL
   imports MAP
   imports LIST
+  imports K-EQUAL
 
   configuration <T>
     <k> $PGM:Pgm ~> main () </k>
     <state> .Map </state> // Id -> Int | Bool, variable names to values.
-    <functions> .Map </functions> // Id -> Stmts, function names to bodies.
+    <functions>
+      <function multiplicity="*" type="Map">
+        <id> main </id>
+        <body> .Stmts </body>
+      </function>
+    </functions> // Id -> Stmts, function names to bodies.
     <fstack> .List </fstack> // Stack (list) of where to return to.
     <envstack> .List </envstack> // Stack (list) of local environments.
   </T>
@@ -109,17 +111,19 @@ module LESSON-16
   rule <k> bool X:Id = B:Bool ; => .K ...</k>
        <state> STATE => STATE [X <- B] </state>
   rule <k> fun F:Id () { S:Stmts } => .K ...</k>
-       <functions> FUNCTIONS => FUNCTIONS [F <- S] </functions>
+       (.Bag => <function> <id> F </id> <body> S </body> </function>)
 
   rule <k> X:Id := I:Int ; => .K ...</k>
        <state>... X |-> (_:Int => I) ...</state>
   rule <k> X:Id := B:Bool ; => .K ...</k>
        <state>... X |-> (_:Bool => B) ...</state>
+  rule <k> if B:Bool then S:Stmts endif
+           => #if B #then S #else .K #fi ...</k>
   
   syntax KItem ::= stackFrame(K)
 
   rule <k> F:Id () ~> K => S </k>
-       <functions>... F |-> S ...</functions>
+       <function> <id> F </id> <body> S </body> </function>
        <fstack> .List => ListItem(stackFrame(K)) ...</fstack>
        <state> STATE => .Map </state>
        <envstack> .List => ListItem(STATE) ...</envstack>
@@ -145,13 +149,20 @@ Test results:
 % krun test1.txt 
 <T>
   <k>
-    11 ~> .K
+    12 ~> .K
   </k>
   <state>
     .Map
   </state>
   <functions>
-    main |-> int x = 3 ;  int y = x * x + 1 ;  x := y - x * 4 ;  return - x / 2 + y ;  .Stmts
+    <function>
+      <id>
+        main
+      </id>
+      <body>
+        int x = 7 ;  int y = 12 ;  int max = x ;  if x < y then max := y ;  .Stmts endif  if max == x then max := 0 - 1 ;  .Stmts endif  return max ;  .Stmts
+      </body>
+    </function>
   </functions>
   <fstack>
     .List
@@ -161,37 +172,30 @@ Test results:
   </envstack>
 </T>
 
-% krun test2.txt
+% krun test2.txt 
 <T>
   <k>
-    true ~> .K
+    29 ~> .K
   </k>
   <state>
     .Map
   </state>
   <functions>
-    main |-> int n = 10 ;  bool p = n > 5 ;  bool q = p ^ true ;  q := ! q && p || false ;  return q && n == 2 * 5 && n != 0 ;  .Stmts
-  </functions>
-  <fstack>
-    .List
-  </fstack>
-  <envstack>
-    .List
-  </envstack>
-</T>
-
-% krun test3.txt
-<T>
-  <k>
-    107 ~> .K
-  </k>
-  <state>
-    .Map
-  </state>
-  <functions>
-    f |-> int x = 100 ;  x := x + 1 ;  return x ;  .Stmts
-    g |-> int x = 1 ;  int r = 0 ;  r := f ( ) ;  return r + x ;  .Stmts
-    main |-> int x = 5 ;  int y = 0 ;  y := g ( ) ;  return x + y ;  .Stmts
+    <function>
+      <id>
+        main
+      </id>
+      <body>
+        int s = 0 ;  int r = 0 ;  bool big = false ;  s := sign ( ) ;  if s < 0 then r := 10 ;  if ! big && r >= 10 then big := true ;  r := r * 3 ;  .Stmts endif  .Stmts endif  if big then return r + s ;  .Stmts endif  return 0 ;  .Stmts
+      </body>
+    </function> <function>
+      <id>
+        sign
+      </id>
+      <body>
+        int n = 0 - 5 ;  if n > 0 then return 1 ;  .Stmts endif  if n == 0 then return 0 ;  .Stmts endif  return 0 - 1 ;  .Stmts
+      </body>
+    </function>
   </functions>
   <fstack>
     .List

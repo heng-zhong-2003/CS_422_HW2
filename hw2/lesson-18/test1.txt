@@ -1,0 +1,12 @@
+fun main() {
+  int x = 7;
+  int y = 12;
+  int max = x;
+  if x < y then
+    max := y;
+  endif
+  if max == x then
+    max := 0 - 1;
+  endif
+  return max;
+}

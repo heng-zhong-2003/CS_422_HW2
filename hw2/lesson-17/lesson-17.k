@@ -1,17 +1,12 @@
 /*
 Chosen exercise:
 
-Modify your solution to Lesson 1.14, Exercise 2 and introduce the sorts
-`Decls`, `Decl`, and `Stmt` which include variable and function declaration
-(without function parameters), and return and assignment statements, as well
-as call expressions. Use `List` and `Map` to implement these operators, making
-sure to consider the interactions between components, such as saving and
-restoring the environment of variables at each call site. Don't worry about
-local function definitions or global variables for now. Make sure to test the
-resulting interpreter.
+Modify the solution from Lesson 1.16, Exercise 1 so that the cell you use to
+keep track of functions in a `Map` is now a cell collection. Run some programs
+and compare how they get unparsed before and after this change.
 */
 
-module LESSON-16-SYNTAX
+module LESSON-17-SYNTAX
   imports UNSIGNED-INT-SYNTAX
   imports BOOL-SYNTAX
   imports ID-SYNTAX
@@ -64,8 +59,8 @@ module LESSON-16-SYNTAX
   syntax Pgm ::= Decls
 endmodule
 
-module LESSON-16
-  imports LESSON-16-SYNTAX
+module LESSON-17
+  imports LESSON-17-SYNTAX
   imports INT
   imports BOOL
   imports MAP
@@ -74,7 +69,12 @@ module LESSON-16
   configuration <T>
     <k> $PGM:Pgm ~> main () </k>
     <state> .Map </state> // Id -> Int | Bool, variable names to values.
-    <functions> .Map </functions> // Id -> Stmts, function names to bodies.
+    <functions>
+      <function multiplicity="*" type="Map">
+        <id> main </id>
+        <body> .Stmts </body>
+      </function>
+    </functions> // Id -> Stmts, function names to bodies.
     <fstack> .List </fstack> // Stack (list) of where to return to.
     <envstack> .List </envstack> // Stack (list) of local environments.
   </T>
@@ -109,7 +109,7 @@ module LESSON-16
   rule <k> bool X:Id = B:Bool ; => .K ...</k>
        <state> STATE => STATE [X <- B] </state>
   rule <k> fun F:Id () { S:Stmts } => .K ...</k>
-       <functions> FUNCTIONS => FUNCTIONS [F <- S] </functions>
+       (.Bag => <function> <id> F </id> <body> S </body> </function>)
 
   rule <k> X:Id := I:Int ; => .K ...</k>
        <state>... X |-> (_:Int => I) ...</state>
@@ -119,7 +119,7 @@ module LESSON-16
   syntax KItem ::= stackFrame(K)
 
   rule <k> F:Id () ~> K => S </k>
-       <functions>... F |-> S ...</functions>
+       <function> <id> F </id> <body> S </body> </function>
        <fstack> .List => ListItem(stackFrame(K)) ...</fstack>
        <state> STATE => .Map </state>
        <envstack> .List => ListItem(STATE) ...</envstack>
@@ -142,7 +142,7 @@ endmodule
 /*
 Test results:
 
-% krun test1.txt 
+% krun test1.txt     
 <T>
   <k>
     11 ~> .K
@@ -151,7 +151,14 @@ Test results:
     .Map
   </state>
   <functions>
-    main |-> int x = 3 ;  int y = x * x + 1 ;  x := y - x * 4 ;  return - x / 2 + y ;  .Stmts
+    <function>
+      <id>
+        main
+      </id>
+      <body>
+        int x = 3 ;  int y = x * x + 1 ;  x := y - x * 4 ;  return - x / 2 + y ;  .Stmts
+      </body>
+    </function>
   </functions>
   <fstack>
     .List
@@ -161,26 +168,7 @@ Test results:
   </envstack>
 </T>
 
-% krun test2.txt
-<T>
-  <k>
-    true ~> .K
-  </k>
-  <state>
-    .Map
-  </state>
-  <functions>
-    main |-> int n = 10 ;  bool p = n > 5 ;  bool q = p ^ true ;  q := ! q && p || false ;  return q && n == 2 * 5 && n != 0 ;  .Stmts
-  </functions>
-  <fstack>
-    .List
-  </fstack>
-  <envstack>
-    .List
-  </envstack>
-</T>
-
-% krun test3.txt
+% krun test3.txt 
 <T>
   <k>
     107 ~> .K
@@ -189,9 +177,28 @@ Test results:
     .Map
   </state>
   <functions>
-    f |-> int x = 100 ;  x := x + 1 ;  return x ;  .Stmts
-    g |-> int x = 1 ;  int r = 0 ;  r := f ( ) ;  return r + x ;  .Stmts
-    main |-> int x = 5 ;  int y = 0 ;  y := g ( ) ;  return x + y ;  .Stmts
+    <function>
+      <id>
+        f
+      </id>
+      <body>
+        int x = 100 ;  x := x + 1 ;  return x ;  .Stmts
+      </body>
+    </function> <function>
+      <id>
+        g
+      </id>
+      <body>
+        int x = 1 ;  int r = 0 ;  r := f ( ) ;  return r + x ;  .Stmts
+      </body>
+    </function> <function>
+      <id>
+        main
+      </id>
+      <body>
+        int x = 5 ;  int y = 0 ;  y := g ( ) ;  return x + y ;  .Stmts
+      </body>
+    </function>
   </functions>
   <fstack>
     .List

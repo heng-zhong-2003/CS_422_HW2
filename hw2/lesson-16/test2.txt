@@ -1,0 +1,7 @@
+fun main() {
+  int n = 10;
+  bool p = n > 5;
+  bool q = p ^ true;
+  q := !q && p || false;
+  return q && n == 2 * 5 && n != 0;
+}
