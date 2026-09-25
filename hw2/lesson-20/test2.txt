@@ -1,0 +1,27 @@
+fun sign() {
+  int n = 0 - 5;
+  if n > 0 then
+    return 1;
+  endif
+  if n == 0 then
+    return 0;
+  endif
+  return 0 - 1;
+}
+fun main() {
+  int s = 0;
+  int r = 0;
+  bool big = false;
+  s := sign();
+  if s < 0 then
+    r := 10;
+    if !big && r >= 10 then
+      big := true;
+      r := r * 3;
+    endif
+  endif
+  if big then
+    return r + s;
+  endif
+  return 0;
+}
